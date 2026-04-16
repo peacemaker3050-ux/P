@@ -1,11 +1,12 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-import whisper
+from faster_whisper import WhisperModel
 import os
 
 app = Flask(__name__)
 CORS(app)
-model = whisper.load_model("base")
+
+model = WhisperModel("base", device="cpu", compute_type="int8")
 
 @app.route("/")
 def home():
@@ -19,8 +20,12 @@ def transcribe():
     file = request.files["file"]
     filepath = "temp_audio.webm"
     file.save(filepath)
-    result = model.transcribe(filepath)
-    os.remove(filepath)
-    return {"text": result["text"]}
 
-app.run(host="0.0.0.0", port=5000)
+    segments, _ = model.transcribe(filepath, language="ar")
+    text = " ".join([s.text for s in segments])
+
+    os.remove(filepath)
+    return jsonify({"text": text})
+
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port)
