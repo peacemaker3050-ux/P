@@ -67,7 +67,7 @@ def analyze_schedule():
 {"days":{"الأحد":[{"type":"lecture","subject":"","doctor":"","hall":"","from":"9:00 ص","to":"10:30 ص","period":1}]}}"""
 
     completion = client.chat.completions.create(
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        model="llama-4-maverick-17b-128e-instruct",
         messages=[{
             "role": "user",
             "content": [
