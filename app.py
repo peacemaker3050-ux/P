@@ -48,6 +48,42 @@ def summarize():
     summary = completion.choices[0].message.content
     return jsonify({"summary": summary})
 
+@app.route("/analyze_schedule", methods=["POST", "OPTIONS"])
+def analyze_schedule():
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    import json
+    data = request.get_json()
+    image_base64 = data.get("image", "")
+
+    prompt = """أنت محلل جداول دراسية جامعية متخصص.
+## قاعدة التصنيف:
+- الخلايا ذات الخلفية الزرقاء الممتدة على عرض الجدول = "lecture"
+- أي خلية في عمود سكشن معين (حتى لو مكتوب فيها معمل) = "section"
+- رقم السكشن من رقم العمود: الأول="1"، الثاني="2"، الثالث="3"
+أوقات بصيغة 12 ساعة مع ص/م — تجاهل الخلايا الفارغة — لا تضيف isLab
+أرجع JSON فقط بدون أي نص أو backticks:
+{"days":{"الأحد":[{"type":"lecture","subject":"","doctor":"","hall":"","from":"9:00 ص","to":"10:30 ص","period":1}]}}"""
+
+    completion = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}},
+                {"type": "text", "text": prompt}
+            ]
+        }],
+        max_tokens=4000
+    )
+
+    raw = completion.choices[0].message.content
+    clean = raw.replace('```json', '').replace('```', '').strip()
+    result = json.loads(clean)
+    return jsonify(result)
+
+
 @app.route("/chat", methods=["POST", "OPTIONS"])
 def chat():
     if request.method == 'OPTIONS':
