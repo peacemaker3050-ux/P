@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from faster_whisper import WhisperModel
+from groq import Groq
 import os
 
 app = Flask(__name__)
 CORS(app)
 
-model = WhisperModel("base", device="cpu", compute_type="int8")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 @app.route("/")
 def home():
@@ -21,11 +21,16 @@ def transcribe():
     filepath = "temp_audio.webm"
     file.save(filepath)
 
-    segments, _ = model.transcribe(filepath, language="ar")
-    text = " ".join([s.text for s in segments])
+    with open(filepath, "rb") as f:
+        result = client.audio.transcriptions.create(
+            file=("audio.webm", f),
+            model="whisper-large-v3",
+            language="ar",
+            response_format="text"
+        )
 
     os.remove(filepath)
-    return jsonify({"text": text})
+    return jsonify({"text": result})
 
 port = int(os.environ.get("PORT", 5000))
 app.run(host="0.0.0.0", port=port)
