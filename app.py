@@ -31,6 +31,20 @@ def transcribe():
 
     os.remove(filepath)
     return jsonify({"text": result})
+@app.route("/summarize", methods=["POST", "OPTIONS"])
+def summarize():
+    if request.method == 'OPTIONS':
+        return '', 200
 
+    data = request.get_json()
+    transcript = data.get("text", "")
+
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": f"أنت مساعد أكاديمي. لخّص هذه المحاضرة الجامعية بشكل منظم، مع إبراز أهم النقاط والمفاهيم الرئيسية. اكتب الملخص باللغة العربية.\n\nنص المحاضرة:\n{transcript}"}],
+        max_tokens=1024
+    )
+    summary = completion.choices[0].message.content
+    return jsonify({"summary": summary})
 port = int(os.environ.get("PORT", 5000))
 app.run(host="0.0.0.0", port=port)
